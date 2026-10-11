@@ -37,7 +37,10 @@ cls
 echo ====================================================================
 echo   MEMULAI LAYANAN MAVI MES SYSTEM
 echo ====================================================================
-echo [1/1] Menjalankan Tauri Desktop App (Vite Dev Server)...
+echo [1/2] Menjalankan YOLO Python Server (Port 8000)...
+start "MAVI MES - YOLO Server (Port 8000)" cmd /c ".\.venv\Scripts\python.exe yolo_server.py"
+timeout /t 2 >nul
+echo [2/2] Menjalankan Tauri Desktop App (Vite Dev Server)...
 echo Jendela ini akan mengunci untuk memantau logs Vite/Tauri.
 echo.
 npm run tauri dev

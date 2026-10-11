@@ -38,6 +38,9 @@ __pycache__/
 .venv/
 
 # AI Models & Datasets (large binaries)
+*.pt
+*.pth
+*.onnx
 models/*.pt
 models/*.pth
 models/*.onnx

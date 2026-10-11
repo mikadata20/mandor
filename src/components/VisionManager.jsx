@@ -93,6 +93,160 @@ const VisionManager = ({ initialTab = 'cameras' }) => {
     const [selectedRegionId, setSelectedRegionId] = useState(null);
     const [regionsByCamera, setRegionsByCamera] = useState({});
 
+    // Direct detector assignment state from Available Detectors list
+    const [detectorToAssign, setDetectorToAssign] = useState(null);
+    const [targetCameraId, setTargetCameraId] = useState('');
+
+    const handleSelectDetectorFromList = (detectorItem) => {
+        if (cameraConfigs.length === 0) {
+            toast.error('Belum ada kamera yang terdaftar. Tambahkan kamera terlebih dahulu.');
+            setShowCameraForm(true);
+            return;
+        }
+        setDetectorToAssign(detectorItem);
+        setTargetCameraId(cameraConfigs[0]?.id || '');
+    };
+
+    const handleAssignDetectorToCamera = async (detectorItem, camId) => {
+        const targetCam = cameraConfigs.find(c => c.id === camId);
+        if (!targetCam) return;
+
+        const existingRegions = regionsByCamera[camId] || [];
+        const nextNum = existingRegions.length + 1;
+        const defaultRegion = {
+            id: `reg_${Date.now()}`,
+            name: `Region ${nextNum} (${detectorItem.name})`,
+            x: 180,
+            y: 120,
+            w: 240,
+            h: 180,
+            detectors: {
+                changeDetector: {
+                    enabled: detectorItem.key === 'changeDetector',
+                    beginThreshold: 40,
+                    upperThreshold: 100,
+                    lowerThreshold: 10,
+                    adaptationSpeed: 'Medium',
+                    resetOnEnd: true,
+                    resetDuration: 0.50
+                },
+                colorDetector: {
+                    enabled: detectorItem.key === 'colorDetector',
+                    name: `Region ${nextNum} Color`,
+                    beginThreshold: 72,
+                    endThreshold: 66,
+                    targetColor: '#eab308',
+                    similarity: 0
+                },
+                jigDetector: {
+                    enabled: detectorItem.key === 'jigDetector',
+                    name: `Region ${nextNum} Jig`,
+                    markerType: 'ArUco',
+                    markerId: 0
+                },
+                ocrDetector: {
+                    enabled: detectorItem.key === 'ocrDetector',
+                    name: `Region ${nextNum} OCR`,
+                    language: 'English',
+                    matchPattern: '',
+                    confidenceThreshold: 80
+                },
+                dimensionDetector: {
+                    enabled: detectorItem.key === 'dimensionDetector',
+                    name: `Region ${nextNum} Dimension`,
+                    referenceSize: 20,
+                    measureMode: 'Width',
+                    unit: 'mm',
+                    minArea: 100,
+                    cannyThreshold: 100,
+                    lsl: 19.5,
+                    usl: 20.5
+                },
+                aiDetector: {
+                    enabled: detectorItem.key === 'aiDetector',
+                    name: `Region ${nextNum} AI`,
+                    modelType: 'anomaly',
+                    modelName: 'default',
+                    anomalyThreshold: 0.5,
+                    expectedClass: 'ok',
+                    threshold: 0.5,
+                    defectAreaLimit: 100
+                },
+                countDetector: {
+                    enabled: detectorItem.key === 'countDetector',
+                    name: `Region ${nextNum} Count`,
+                    targetClass: 'object',
+                    expectedCount: 1,
+                    confidenceThreshold: 50
+                },
+                barcode1dDetector: {
+                    enabled: detectorItem.key === 'barcode1dDetector',
+                    name: `Region ${nextNum} 1D Barcode`,
+                    symbology: 'ANY',
+                    expectedValue: ''
+                },
+                barcode2dDetector: {
+                    enabled: detectorItem.key === 'barcode2dDetector',
+                    name: `Region ${nextNum} 2D Code`,
+                    symbology: 'ANY',
+                    expectedValue: ''
+                },
+                calibrationDetector: {
+                    enabled: detectorItem.key === 'calibrationDetector',
+                    name: `Region ${nextNum} Calibration`,
+                    calibType: 'Scale Factor (mm/px)',
+                    targetMmPerPixel: 0.1170
+                }
+            }
+        };
+
+        const updatedRegions = [...existingRegions, defaultRegion];
+        setRegionsByCamera(prev => ({
+            ...prev,
+            [camId]: updatedRegions
+        }));
+
+        // Auto-save to Supabase
+        try {
+            const activeDetectors = [];
+            updatedRegions.forEach(r => {
+                if (r.detectors?.changeDetector?.enabled) activeDetectors.push('Change Detector');
+                if (r.detectors?.colorDetector?.enabled) activeDetectors.push('Color Detector');
+                if (r.detectors?.jigDetector?.enabled) activeDetectors.push('Jig Detector');
+                if (r.detectors?.ocrDetector?.enabled) activeDetectors.push('OCR Detector');
+                if (r.detectors?.dimensionDetector?.enabled) activeDetectors.push('Dimension Detector');
+                if (r.detectors?.aiDetector?.enabled) activeDetectors.push('AI Detector');
+                if (r.detectors?.countDetector?.enabled) activeDetectors.push('Count Detector');
+                if (r.detectors?.barcode1dDetector?.enabled) activeDetectors.push('1D Code Reader');
+                if (r.detectors?.barcode2dDetector?.enabled) activeDetectors.push('2D Code Reader');
+                if (r.detectors?.calibrationDetector?.enabled) activeDetectors.push('Calibration Tool');
+            });
+            const uniqueDets = [...new Set(activeDetectors)];
+            await saveCamera({
+                id: targetCam.id,
+                name: targetCam.name,
+                url: targetCam.ipCameraUrl || '',
+                type: targetCam.cameraSource || 'DEVICE',
+                settings: {
+                    ...(targetCam.settings || {}),
+                    status: targetCam.status,
+                    regionsCount: updatedRegions.length,
+                    detectors: uniqueDets,
+                    regions: updatedRegions
+                }
+            });
+        } catch (err) {
+            console.error('Failed to save camera with new detector region:', err);
+        }
+
+        toast.success(`${detectorItem.name} berhasil ditambahkan ke kamera "${targetCam.name}"!`);
+        setDetectorToAssign(null);
+
+        // Open Camera Region Editor immediately with the new region focused
+        setSelectedRegionId(defaultRegion.id);
+        setEditingCameraConfig(targetCam);
+    };
+
     // Keep camera config stats sync'd with regionsByCamera
     useEffect(() => {
         setCameraConfigs(prev => prev.map(cfg => {
@@ -1207,7 +1361,7 @@ const VisionManager = ({ initialTab = 'cameras' }) => {
                                                 ))}
                                             </div>
 
-                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
                                                 <button
                                                     onClick={() => {
                                                         if (config.status !== 'ACTIVE') {
@@ -1215,16 +1369,25 @@ const VisionManager = ({ initialTab = 'cameras' }) => {
                                                         }
                                                         setSelectedCamera(config);
                                                     }}
-                                                    style={{ flex: 1, padding: '8px', borderRadius: '8px', backgroundColor: '#3b82f6', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', backgroundColor: '#3b82f6', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                                                 >
                                                     <Play size={12} /> LIVE STREAM
                                                 </button>
                                                 <button
                                                     onClick={() => setEditingCameraConfig(config)}
-                                                    style={{ width: '36px', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                    title="Configure Regions"
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', gap: '6px',
+                                                        padding: '8px 12px', borderRadius: '8px',
+                                                        border: '1px solid #bfdbfe', backgroundColor: '#eff6ff',
+                                                        color: '#1d4ed8', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
+                                                        transition: 'all 0.15s'
+                                                    }}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
+                                                    title="Configure Regions & Detectors"
                                                 >
-                                                    <Settings size={16} color="#64748b" />
+                                                    <Settings size={14} color="#1d4ed8" />
+                                                    <span>+ Detektor & ROI</span>
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteCamera(config.id, config.name)}
@@ -1249,8 +1412,14 @@ const VisionManager = ({ initialTab = 'cameras' }) => {
                         {/* Side panel: Detectors & Guides */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div style={{ padding: '20px', backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                <h3 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', fontWeight: 800 }}>Available Detectors</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Available Detectors</h3>
+                                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Klik untuk tambah</span>
+                                </div>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 14px 0', lineHeight: 1.4 }}>
+                                    Pilih jenis detektor di bawah ini untuk langsung menempatkannya pada Region kamera:
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {[
                                         { 
                                             name: 'Presence Check', 
@@ -1402,16 +1571,120 @@ const VisionManager = ({ initialTab = 'cameras' }) => {
                                                 </svg>
                                             )
                                         }
-                                    ].map(d => (
-                                        <div key={d.name} style={{ padding: '10px', border: '1px solid #f1f5f9', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
-                                            {d.icon}
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#334155' }}>{d.name}</div>
-                                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>{d.desc}</div>
+                                    ].map(d => {
+                                        const detectorKeyMap = {
+                                            'Presence Check': 'changeDetector',
+                                            'Scratch Inspection': 'aiDetector',
+                                            'GD&T Measurement': 'dimensionDetector',
+                                            'Positioning (Jig)': 'jigDetector',
+                                            'Color Inspection': 'colorDetector',
+                                            'Count Detector': 'countDetector',
+                                            'Character Recognition': 'ocrDetector',
+                                            '1D Code Reader': 'barcode1dDetector',
+                                            '2D Code Reader': 'barcode2dDetector',
+                                            'Calibration Tool': 'calibrationDetector'
+                                        };
+                                        const detItem = { ...d, key: detectorKeyMap[d.name] || 'colorDetector' };
+                                        return (
+                                            <div
+                                                key={d.name}
+                                                onClick={() => handleSelectDetectorFromList(detItem)}
+                                                style={{
+                                                    padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '10px',
+                                                    display: 'flex', alignItems: 'center', cursor: 'pointer',
+                                                    backgroundColor: 'white', transition: 'all 0.15s'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.borderColor = '#3b82f6';
+                                                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                                                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(59,130,246,0.08)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.borderColor = '#e2e8f0';
+                                                    e.currentTarget.style.backgroundColor = 'white';
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                }}
+                                            >
+                                                {d.icon}
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#1e293b' }}>{d.name}</span>
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#2563eb', backgroundColor: '#eff6ff', padding: '2px 6px', borderRadius: '4px' }}>
+                                                            + Tambah
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>{d.desc}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Modal Assign Detector to Camera */}
+                                {detectorToAssign && (
+                                    <div style={{
+                                        position: 'fixed', inset: 0, zIndex: 1000,
+                                        backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        padding: '20px'
+                                    }}>
+                                        <div style={{
+                                            backgroundColor: '#ffffff', borderRadius: '16px', width: '100%', maxWidth: '440px',
+                                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden',
+                                            border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column'
+                                        }}>
+                                            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#1e293b' }}>
+                                                        Tambahkan {detectorToAssign.name}
+                                                    </h3>
+                                                    <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                                                        Pilih kamera target untuk menempatkan detektor visual ini.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => setDetectorToAssign(null)}
+                                                    style={{ border: 'none', backgroundColor: 'transparent', color: '#94a3b8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+                                            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
+                                                        Pilih Kamera Tujuan
+                                                    </label>
+                                                    <select
+                                                        value={targetCameraId}
+                                                        onChange={(e) => setTargetCameraId(e.target.value)}
+                                                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', backgroundColor: 'white' }}
+                                                    >
+                                                        {cameraConfigs.map(c => (
+                                                            <option key={c.id} value={c.id}>{c.name} ({c.cameraSource})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#475569', lineHeight: 1.5 }}>
+                                                    💡 Sistem akan otomatis membuat <strong>Region of Interest (ROI)</strong> pada kamera yang dipilih dan mengaktifkan <strong>{detectorToAssign.name}</strong> agar posisinya langsung dapat disesuaikan.
+                                                </div>
+                                            </div>
+                                            <div style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                                <button
+                                                    onClick={() => setDetectorToAssign(null)}
+                                                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}
+                                                >
+                                                    Batal
+                                                </button>
+                                                <button
+                                                    onClick={() => handleAssignDetectorToCamera(detectorToAssign, targetCameraId || cameraConfigs[0]?.id)}
+                                                    style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}
+                                                >
+                                                    Tambahkan ke Kamera
+                                                </button>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
@@ -3610,9 +3883,110 @@ function CameraRegionEditor({
         if (selectedRegionId === id) setSelectedRegionId(null);
     };
 
+    const handleAddNewRegion = (defaultDetectorKey = null) => {
+        const nextNum = regions.length + 1;
+        const newReg = {
+            id: `reg_${Date.now()}`,
+            name: `Region ${nextNum}`,
+            x: 180,
+            y: 120,
+            w: 240,
+            h: 180,
+            detectors: {
+                changeDetector: {
+                    enabled: defaultDetectorKey === 'changeDetector',
+                    beginThreshold: 40,
+                    upperThreshold: 100,
+                    lowerThreshold: 10,
+                    adaptationSpeed: 'Medium',
+                    resetOnEnd: true,
+                    resetDuration: 0.50
+                },
+                colorDetector: {
+                    enabled: defaultDetectorKey === 'colorDetector' || !defaultDetectorKey,
+                    name: `Region ${nextNum} Color`,
+                    beginThreshold: 72,
+                    endThreshold: 66,
+                    targetColor: '#eab308',
+                    similarity: 0
+                },
+                jigDetector: {
+                    enabled: defaultDetectorKey === 'jigDetector',
+                    name: `Region ${nextNum} Jig`,
+                    markerType: 'ArUco',
+                    markerId: 0
+                },
+                ocrDetector: {
+                    enabled: defaultDetectorKey === 'ocrDetector',
+                    name: `Region ${nextNum} OCR`,
+                    language: 'English',
+                    matchPattern: '',
+                    confidenceThreshold: 80
+                },
+                dimensionDetector: {
+                    enabled: defaultDetectorKey === 'dimensionDetector',
+                    name: `Region ${nextNum} Dimension`,
+                    referenceSize: 20,
+                    measureMode: 'Width',
+                    unit: 'mm',
+                    minArea: 100,
+                    cannyThreshold: 100,
+                    lsl: 19.5,
+                    usl: 20.5
+                },
+                aiDetector: {
+                    enabled: defaultDetectorKey === 'aiDetector',
+                    name: `Region ${nextNum} AI`,
+                    modelType: 'anomaly',
+                    modelName: 'default',
+                    anomalyThreshold: 0.5,
+                    expectedClass: 'ok',
+                    threshold: 0.5,
+                    defectAreaLimit: 100
+                },
+                countDetector: {
+                    enabled: defaultDetectorKey === 'countDetector',
+                    name: `Region ${nextNum} Count`,
+                    targetClass: 'object',
+                    expectedCount: 1,
+                    confidenceThreshold: 50
+                },
+                barcode1dDetector: {
+                    enabled: defaultDetectorKey === 'barcode1dDetector',
+                    name: `Region ${nextNum} 1D Barcode`,
+                    symbology: 'ANY',
+                    expectedValue: ''
+                },
+                barcode2dDetector: {
+                    enabled: defaultDetectorKey === 'barcode2dDetector',
+                    name: `Region ${nextNum} 2D Code`,
+                    symbology: 'ANY',
+                    expectedValue: ''
+                },
+                calibrationDetector: {
+                    enabled: defaultDetectorKey === 'calibrationDetector',
+                    name: `Region ${nextNum} Calibration`,
+                    calibType: 'Scale Factor (mm/px)',
+                    targetMmPerPixel: 0.1170
+                }
+            }
+        };
+        setRegionsByCamera(prev => ({
+            ...prev,
+            [camera.id]: [...(prev[camera.id] || []), newReg]
+        }));
+        setSelectedRegionId(newReg.id);
+        if (!defaultDetectorKey) {
+            setShowDetectorSelector(true);
+        }
+    };
+
     const handleCreateDetector = (e) => {
-        e.preventDefault();
-        if (!selectedRegionId) return;
+        if (e && e.preventDefault) e.preventDefault();
+        if (!selectedRegionId) {
+            handleAddNewRegion();
+            return;
+        }
         setShowDetectorSelector(prev => !prev);
     };
 
@@ -4734,14 +5108,28 @@ function CameraRegionEditor({
                     </div>
                     <Info size={15} color="#9ca3af" style={{ cursor: 'pointer' }} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Settings size={14} color="#9ca3af" />
-                    <span style={{ fontSize: '0.78rem', color: '#6b7280', fontWeight: 500 }}>Configure Offline</span>
-                    <ToggleSwitch 
-                        checked={configureOffline} 
-                        onChange={(e) => setConfigureOffline(e.target.checked)} 
-                        size="small"
-                    />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button
+                        onClick={() => handleAddNewRegion()}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '6px 12px', borderRadius: '6px',
+                            backgroundColor: '#3b82f6', color: 'white',
+                            border: 'none', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer',
+                            boxShadow: '0 1px 2px rgba(59,130,246,0.2)'
+                        }}
+                    >
+                        <Plus size={14} /> + Buat Region / Detektor
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Settings size={14} color="#9ca3af" />
+                        <span style={{ fontSize: '0.78rem', color: '#6b7280', fontWeight: 500 }}>Configure Offline</span>
+                        <ToggleSwitch 
+                            checked={configureOffline} 
+                            onChange={(e) => setConfigureOffline(e.target.checked)} 
+                            size="small"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -5149,17 +5537,41 @@ function CameraRegionEditor({
                                 }}>
                                     <Maximize size={28} />
                                 </div>
-                                <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>No region has been created</h3>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5, maxWidth: '240px' }}>
-                                    Regions are areas of interests within which events such as color change can be detected. Drag anywhere on the Live Station View to create a new region. <a href="#learn" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>Learn more</a>
+                                <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', fontWeight: 700, color: '#111827' }}>Belum Ada Region (ROI)</h3>
+                                <p style={{ margin: '0 0 16px 0', fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5, maxWidth: '260px' }}>
+                                    Detektor visual bekerja di dalam kotak Region (ROI). Drag mouse pada video feed atau klik tombol di bawah untuk membuat region:
                                 </p>
+                                <button
+                                    onClick={() => handleAddNewRegion()}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '6px',
+                                        padding: '10px 18px', borderRadius: '8px',
+                                        backgroundColor: '#3b82f6', color: 'white',
+                                        border: 'none', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
+                                        boxShadow: '0 4px 6px -1px rgba(59,130,246,0.3)'
+                                    }}
+                                >
+                                    <Plus size={16} /> Buat Region & Tambah Detektor
+                                </button>
                             </div>
                         ) : (
                             /* List of existing regions when regions exist but none is selected */
                             <div className="custom-scrollbar" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px', overflowY: 'auto' }}>
-                                <h3 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1e293b', marginBottom: '14px' }}>
-                                    Active Regions ({regions.length})
-                                </h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: '#1e293b' }}>
+                                        Active Regions ({regions.length})
+                                    </h3>
+                                    <button
+                                        onClick={() => handleAddNewRegion()}
+                                        style={{
+                                            padding: '4px 10px', borderRadius: '4px',
+                                            backgroundColor: '#eff6ff', color: '#2563eb',
+                                            border: '1px solid #bfdbfe', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer'
+                                        }}
+                                    >
+                                        + Add Region
+                                    </button>
+                                </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     {regions.map((r, idx) => {
                                         // Find active detectors for this region

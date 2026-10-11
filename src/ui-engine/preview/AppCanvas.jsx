@@ -5300,7 +5300,7 @@ export default function AppCanvas({
               <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Uji Respon Interlock Suhu</h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Simulasikan lonjakan temperatur motor >75°C untuk menguji lockout darurat.</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Simulasikan lonjakan temperatur motor &gt;75°C untuk menguji lockout darurat.</p>
                 </div>
                 <button
                   type="button"
