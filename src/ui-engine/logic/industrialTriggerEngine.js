@@ -1847,6 +1847,9 @@ async function executeAction(act, context, execContext) {
         if (context.onNavigate) {
           context.onNavigate(type, payload);
         }
+        return { type, status: 'SUCCESS' };
+      }
+
       // ── Google Cloud Vertex AI: Vision Defect Inspection ──
       case 'VERTEX_AI_VISION_INSPECT':
       case 'CALL_VERTEX_AI_PREDICTION': {

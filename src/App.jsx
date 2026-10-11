@@ -66,6 +66,8 @@ export default function App() {
     location.pathname.startsWith('/dozuki-player') ||
     location.pathname.startsWith('/dozuki-checksheet') ||
     location.pathname.startsWith('/dozuki-mobile') ||
+    location.pathname.startsWith('/digital-wi/operator') ||
+    window.location.hash.includes('digital-wi/operator') ||
     location.search.includes('standalone=true') ||
     location.search.includes('hideHeader=true') ||
     location.search.includes('mode=companion') ||

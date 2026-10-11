@@ -438,3 +438,36 @@ body {
   touch-action: pan-y;
   overscroll-behavior-y: contain;
 }
+
+/* ==========================================================================
+   DIGITAL WORK INSTRUCTION (WI) CLEAN PRINT ISOLATION
+   Hides all UI, Navigation, Zoom widgets, and toolbars when printing.
+   ========================================================================== */
+@media print {
+  nav,
+  header.no-print,
+  aside.no-print,
+  .no-print,
+  #zoom-widget,
+  .zoom-widget-container,
+  button:not(.allow-print),
+  div[role="status"],
+  div[aria-live="polite"],
+  div[aria-live="assertive"],
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+
+  html, body, #root, #root > div {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+  }
+}

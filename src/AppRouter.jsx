@@ -111,6 +111,16 @@ const DownloadPlayer = lazy(() => import('./components/DownloadPlayer'));
 const GenealogyViewer = lazy(() => import('./components/GenealogyViewer'));
 const GoogleCloudAiShowcase = lazy(() => import('./components/GoogleCloudAiShowcase'));
 
+// Digital Work Instruction (Digital WI) Suite
+const DigitalWiDashboard = lazy(() => import('./components/digital-wi/DigitalWiDashboard'));
+const DigitalWiLibrary = lazy(() => import('./components/digital-wi/DigitalWiLibrary'));
+const DigitalWiConverter = lazy(() => import('./components/digital-wi/DigitalWiConverter'));
+const DigitalWiEditor = lazy(() => import('./components/digital-wi/DigitalWiEditor'));
+const DigitalWiApprovalCenter = lazy(() => import('./components/digital-wi/DigitalWiApprovalCenter'));
+const DigitalWiDeployments = lazy(() => import('./components/digital-wi/DigitalWiDeployments'));
+const DigitalWiExecutionHistory = lazy(() => import('./components/digital-wi/DigitalWiExecutionHistory'));
+const DigitalWiOperatorRuntime = lazy(() => import('./components/digital-wi/DigitalWiOperatorRuntime'));
+
 export default function AppRouter({ user, isOperator }) {
   const hasAccess = (path) => checkRoleAccess(user, path);
 
@@ -158,6 +168,18 @@ export default function AppRouter({ user, isOperator }) {
               <Route path="/google-cloud-ai" element={<GoogleCloudAiShowcase />} />
               <Route path="/ai-showcase" element={<GoogleCloudAiShowcase />} />
               <Route path="/vertex-ai" element={<GoogleCloudAiShowcase />} />
+              {/* Digital WI Operator & Management Routes */}
+              <Route path="/digital-wi/operator/:id" element={<DigitalWiOperatorRuntime />} />
+              <Route path="/digital-wi/operator" element={<DigitalWiOperatorRuntime />} />
+              <Route path="/digital-wi" element={<DigitalWiDashboard />} />
+              <Route path="/digital-wi/dashboard" element={<DigitalWiDashboard />} />
+              <Route path="/digital-wi/library" element={<DigitalWiLibrary />} />
+              <Route path="/digital-wi/import" element={<DigitalWiConverter />} />
+              <Route path="/digital-wi/editor/:id" element={<DigitalWiEditor />} />
+              <Route path="/digital-wi/editor" element={<DigitalWiEditor />} />
+              <Route path="/digital-wi/approvals" element={<DigitalWiApprovalCenter />} />
+              <Route path="/digital-wi/deployments" element={<DigitalWiDeployments />} />
+              <Route path="/digital-wi/executions" element={<DigitalWiExecutionHistory />} />
               <Route path="*" element={<Navigate to="/terminal" replace />} />
             </>
           ) : (
@@ -269,6 +291,18 @@ export default function AppRouter({ user, isOperator }) {
               <Route path="/google-cloud-ai" element={<GoogleCloudAiShowcase />} />
               <Route path="/ai-showcase" element={<GoogleCloudAiShowcase />} />
               <Route path="/vertex-ai" element={<GoogleCloudAiShowcase />} />
+              {/* Digital Work Instruction (Digital WI) Enterprise Suite */}
+              <Route path="/digital-wi" element={<DigitalWiDashboard />} />
+              <Route path="/digital-wi/dashboard" element={<DigitalWiDashboard />} />
+              <Route path="/digital-wi/library" element={<DigitalWiLibrary />} />
+              <Route path="/digital-wi/import" element={<DigitalWiConverter />} />
+              <Route path="/digital-wi/editor" element={<DigitalWiEditor />} />
+              <Route path="/digital-wi/editor/:id" element={<DigitalWiEditor />} />
+              <Route path="/digital-wi/approvals" element={<DigitalWiApprovalCenter />} />
+              <Route path="/digital-wi/deployments" element={<DigitalWiDeployments />} />
+              <Route path="/digital-wi/executions" element={<DigitalWiExecutionHistory />} />
+              <Route path="/digital-wi/operator/:id" element={<DigitalWiOperatorRuntime />} />
+              <Route path="/digital-wi/operator" element={<DigitalWiOperatorRuntime />} />
               <Route path="*" element={<Home />} />
             </>
           )}

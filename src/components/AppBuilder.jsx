@@ -20237,8 +20237,11 @@ const AppBuilder = () => {
                                                                                 <option value="TEMPLATE_MATCH">Template Matching (Pencocokan Posisi)</option>
                                                                                 <option value="COLOR_INSPECT">Color Inspection (Inspeksi Warna HSV)</option>
                                                                             </optgroup>
-                                                                            <optgroup label="⚡ Pipeline">
-                                                                                <option value="FULL_PIPELINE">Full Inspection Pipeline (Alur Lengkap)</option>
+                                                                            <optgroup label="⚡ Pipeline & Vision Builder">
+                                                                                <option value="FULL_PIPELINE">Full Inspection Pipeline (QuickBuild)</option>
+                                                                            </optgroup>
+                                                                            <optgroup label="✨ Google Cloud AI">
+                                                                                <option value="VERTEX_AI">Google Vertex AI & Gemini Multimodal QC (✨ Next-Gen)</option>
                                                                             </optgroup>
                                                                         </select>
                                                                     </div>
@@ -20567,33 +20570,251 @@ const AppBuilder = () => {
                                                                                     <input type="text" value={selectedComp.props.aiModelName || 'default'} onChange={(e) => updateComponentProps(selectedComp.id, { aiModelName: e.target.value })} placeholder="e.g. default, model_v1" style={{ width: '100%', padding: '8px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }} />
                                                                                 </div>
                                                                                 {selectedComp.props.filterType === 'FULL_PIPELINE' && (() => {
-                                                                                    // Load saved pipelines
-                                                                                    const saved = localStorage.getItem('mandor_quickbuild_pipelines');
-                                                                                    const customList = saved ? JSON.parse(saved) : [];
+                                                                                    // Comprehensive load from QuickBuild templates, custom pipelines, and workspace jobs
+                                                                                    const pipelineOptions = [
+                                                                                        { name: 'Google Vertex AI Zero-Shot QC', cat: '✨ Vertex AI' },
+                                                                                        { name: 'Flange Connector Check', cat: 'Template' },
+                                                                                        { name: 'Lot Expiry OCR & OCV Verify', cat: 'Template' },
+                                                                                        { name: 'Color & Dimensional QC', cat: 'Template' }
+                                                                                    ];
+                                                                                    try {
+                                                                                        const customList = JSON.parse(localStorage.getItem('mandor_quickbuild_pipelines') || '[]');
+                                                                                        customList.forEach(p => {
+                                                                                            if (p?.name && !pipelineOptions.some(o => o.name === p.name)) {
+                                                                                                pipelineOptions.push({ name: p.name, cat: 'QuickBuild Custom' });
+                                                                                            }
+                                                                                        });
+                                                                                        const ws = JSON.parse(localStorage.getItem('mandor_quickbuild_workspace') || '{}');
+                                                                                        if (ws?.jobs && Array.isArray(ws.jobs)) {
+                                                                                            ws.jobs.forEach(j => {
+                                                                                                if (j?.name && !pipelineOptions.some(o => o.name === j.name)) {
+                                                                                                    pipelineOptions.push({ name: j.name, cat: 'Workspace Job' });
+                                                                                                }
+                                                                                            });
+                                                                                        }
+                                                                                    } catch (_) {}
+
                                                                                     return (
                                                                                         <>
                                                                                             <div className="prop-group" style={{ marginTop: '8px', marginBottom: '4px' }}>
                                                                                                 <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Select QuickBuild Pipeline</label>
                                                                                                 <select
-                                                                                                    value={selectedComp.props.quickbuildPipelineName || ''}
+                                                                                                    value={selectedComp.props.quickbuildPipelineName || 'Google Vertex AI Zero-Shot QC'}
                                                                                                     onChange={(e) => updateComponentProps(selectedComp.id, { quickbuildPipelineName: e.target.value })}
                                                                                                     style={{ width: '100%', padding: '8px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }}
                                                                                                 >
-                                                                                                    <option value="">-- Select Pipeline --</option>
-                                                                                                    <option value="Flange Connector Check">Flange Connector Check (Default)</option>
-                                                                                                    <option value="Lot Expiry OCR & OCV Verify">Lot Expiry OCR & OCV Verify (Default)</option>
-                                                                                                    {customList.map(p => (
-                                                                                                        <option key={p.name} value={p.name}>{p.name}</option>
+                                                                                                    {pipelineOptions.map(p => (
+                                                                                                        <option key={p.name} value={p.name}>{p.name} ({p.cat})</option>
                                                                                                     ))}
                                                                                                 </select>
                                                                                             </div>
-                                                                                            <div className="prop-group" style={{ marginTop: '8px', marginBottom: '4px' }}>
-                                                                                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Pipeline Steps (Fallback)</label>
-                                                                                                <input type="text" value={selectedComp.props.pipelineSteps || '["anomaly"]'} onChange={(e) => updateComponentProps(selectedComp.id, { pipelineSteps: e.target.value })} placeholder='e.g. ["alignment", "anomaly", "measure"]' style={{ width: '100%', padding: '8px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.75rem' }} />
+
+                                                                                            {/* Variable Bindings for Pipeline output */}
+                                                                                            <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                                                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                                                                                    🔗 Output Variable Bindings
+                                                                                                </label>
+                                                                                                <div className="prop-group" style={{ marginBottom: '6px' }}>
+                                                                                                    <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Bind Verdict to Variable (PASS / FAIL)</label>
+                                                                                                    <select
+                                                                                                        value={selectedComp.props.targetVerdictVariable || ''}
+                                                                                                        onChange={(e) => updateComponentProps(selectedComp.id, { targetVerdictVariable: e.target.value })}
+                                                                                                        style={{ width: '100%', padding: '6px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.75rem' }}
+                                                                                                    >
+                                                                                                        <option value="">-- None (No Binding) --</option>
+                                                                                                        {(appVariables || []).map(v => (
+                                                                                                            <option key={v.id || v.name} value={v.name}>{v.name} ({v.type || 'text'})</option>
+                                                                                                        ))}
+                                                                                                    </select>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div style={{ marginTop: '10px' }}>
+                                                                                                <a
+                                                                                                    href="#/vision/quickbuild"
+                                                                                                    target="_blank"
+                                                                                                    rel="noreferrer"
+                                                                                                    style={{
+                                                                                                        display: 'flex',
+                                                                                                        alignItems: 'center',
+                                                                                                        justifyContent: 'center',
+                                                                                                        gap: '6px',
+                                                                                                        padding: '6px 10px',
+                                                                                                        borderRadius: '6px',
+                                                                                                        backgroundColor: '#2563eb',
+                                                                                                        color: 'white',
+                                                                                                        textDecoration: 'none',
+                                                                                                        fontSize: '0.7rem',
+                                                                                                        fontWeight: 700
+                                                                                                    }}
+                                                                                                >
+                                                                                                    🛠️ Edit di Vision Builder (QuickBuild)
+                                                                                                </a>
                                                                                             </div>
                                                                                         </>
                                                                                     );
                                                                                 })()}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* ── DEDICATED GOOGLE VERTEX AI MULTIMODAL QC INSPECTOR ── */}
+                                                                    {selectedComp.props.filterType === 'VERTEX_AI' && (
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                                                                            <div style={{
+                                                                                padding: '12px',
+                                                                                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%)',
+                                                                                border: '1px solid rgba(37, 99, 235, 0.3)',
+                                                                                borderRadius: '8px'
+                                                                            }}>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                                                                    <label style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 800, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                                        ✨ Google Vertex AI Multimodal QC
+                                                                                    </label>
+                                                                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                                                                                        GEMINI 2.0
+                                                                                    </span>
+                                                                                </div>
+
+                                                                                <div className="prop-group" style={{ marginBottom: '10px' }}>
+                                                                                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Foundation Model</label>
+                                                                                    <select
+                                                                                        value={selectedComp.props.vertexModel || 'gemini-2.0-flash'}
+                                                                                        onChange={(e) => updateComponentProps(selectedComp.id, { vertexModel: e.target.value })}
+                                                                                        style={{ width: '100%', padding: '8px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                                                                                    >
+                                                                                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (Sub-Second Latency)</option>
+                                                                                        <option value="gemini-1.5-flash">Gemini 1.5 Flash (Edge Optimized)</option>
+                                                                                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
+                                                                                        <option value="automl-vision-custom">Vertex AI AutoML Vision (Custom Endpoint)</option>
+                                                                                    </select>
+                                                                                </div>
+
+                                                                                <div className="prop-group" style={{ marginBottom: '10px' }}>
+                                                                                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Inspection Task Profile</label>
+                                                                                    <select
+                                                                                        value={selectedComp.props.vertexTask || 'Defect Detection'}
+                                                                                        onChange={(e) => updateComponentProps(selectedComp.id, { vertexTask: e.target.value })}
+                                                                                        style={{ width: '100%', padding: '8px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                                                                                    >
+                                                                                        <option value="Defect Detection">Visual Defect & Micro-Crack Detection</option>
+                                                                                        <option value="Assembly Verification">Assembly Verification & Poka-Yoke</option>
+                                                                                        <option value="Visual QA / OCR">Extreme OCR & Dot-Peen Code Verification</option>
+                                                                                        <option value="Root Cause Analysis">Auto 5-Why & Root Cause Analysis (RCA)</option>
+                                                                                    </select>
+                                                                                </div>
+
+                                                                                <div className="prop-group" style={{ marginBottom: '10px' }}>
+                                                                                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>Multimodal Inspection Prompt</label>
+                                                                                    <textarea
+                                                                                        value={selectedComp.props.vertexPrompt || 'Analyze workpiece for scratches, micro-cracks, dimensional misalignment, or missing assembly components. Return verdict PASS or FAIL.'}
+                                                                                        onChange={(e) => updateComponentProps(selectedComp.id, { vertexPrompt: e.target.value })}
+                                                                                        rows={3}
+                                                                                        style={{ width: '100%', padding: '8px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.7rem' }}
+                                                                                    />
+                                                                                </div>
+
+                                                                                <div className="prop-group" style={{ marginBottom: '10px' }}>
+                                                                                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>
+                                                                                        Confidence Threshold: {selectedComp.props.vertexConfidenceThreshold ?? 85}%
+                                                                                    </label>
+                                                                                    <input
+                                                                                        type="range"
+                                                                                        min="50"
+                                                                                        max="99"
+                                                                                        value={selectedComp.props.vertexConfidenceThreshold ?? 85}
+                                                                                        onChange={(e) => updateComponentProps(selectedComp.id, { vertexConfidenceThreshold: parseInt(e.target.value) })}
+                                                                                        style={{ width: '100%', cursor: 'pointer' }}
+                                                                                    />
+                                                                                </div>
+
+                                                                                <div className="prop-group" style={{ marginBottom: '10px' }}>
+                                                                                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '4px' }}>GCP Region</label>
+                                                                                    <select
+                                                                                        value={selectedComp.props.vertexLocation || 'asia-southeast1'}
+                                                                                        onChange={(e) => updateComponentProps(selectedComp.id, { vertexLocation: e.target.value })}
+                                                                                        style={{ width: '100%', padding: '8px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                                                                                    >
+                                                                                        <option value="asia-southeast1">Jakarta (asia-southeast1)</option>
+                                                                                        <option value="asia-east1">Taiwan (asia-east1)</option>
+                                                                                        <option value="us-central1">Iowa (us-central1)</option>
+                                                                                        <option value="europe-west1">Belgium (europe-west1)</option>
+                                                                                    </select>
+                                                                                </div>
+
+                                                                                {/* Variable Bindings for App Builder integration */}
+                                                                                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(37, 99, 235, 0.2)' }}>
+                                                                                    <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                                                                        🔗 Output Variable Bindings
+                                                                                    </label>
+                                                                                    
+                                                                                    <div className="prop-group" style={{ marginBottom: '8px' }}>
+                                                                                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Bind Verdict to Variable (PASS / FAIL)</label>
+                                                                                        <select
+                                                                                            value={selectedComp.props.targetVerdictVariable || ''}
+                                                                                            onChange={(e) => updateComponentProps(selectedComp.id, { targetVerdictVariable: e.target.value })}
+                                                                                            style={{ width: '100%', padding: '6px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.75rem' }}
+                                                                                        >
+                                                                                            <option value="">-- None (No Binding) --</option>
+                                                                                            {(appVariables || []).map(v => (
+                                                                                                <option key={v.id || v.name} value={v.name}>{v.name} ({v.type || 'text'})</option>
+                                                                                            ))}
+                                                                                        </select>
+                                                                                    </div>
+
+                                                                                    <div className="prop-group" style={{ marginBottom: '8px' }}>
+                                                                                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Bind Defects to Variable</label>
+                                                                                        <select
+                                                                                            value={selectedComp.props.targetDefectsVariable || ''}
+                                                                                            onChange={(e) => updateComponentProps(selectedComp.id, { targetDefectsVariable: e.target.value })}
+                                                                                            style={{ width: '100%', padding: '6px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.75rem' }}
+                                                                                        >
+                                                                                            <option value="">-- None (No Binding) --</option>
+                                                                                            {(appVariables || []).map(v => (
+                                                                                                <option key={v.id || v.name} value={v.name}>{v.name} ({v.type || 'text'})</option>
+                                                                                            ))}
+                                                                                        </select>
+                                                                                    </div>
+
+                                                                                    <div className="prop-group" style={{ marginBottom: '8px' }}>
+                                                                                        <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-tertiary)', marginBottom: '2px' }}>Bind Confidence to Variable (%)</label>
+                                                                                        <select
+                                                                                            value={selectedComp.props.targetConfidenceVariable || ''}
+                                                                                            onChange={(e) => updateComponentProps(selectedComp.id, { targetConfidenceVariable: e.target.value })}
+                                                                                            style={{ width: '100%', padding: '6px', border: '1px solid var(--border-primary)', borderRadius: '4px', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '0.75rem' }}
+                                                                                        >
+                                                                                            <option value="">-- None (No Binding) --</option>
+                                                                                            {(appVariables || []).map(v => (
+                                                                                                <option key={v.id || v.name} value={v.name}>{v.name} ({v.type || 'number'})</option>
+                                                                                            ))}
+                                                                                        </select>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                                                                                    <a
+                                                                                        href="#/vision/quickbuild"
+                                                                                        target="_blank"
+                                                                                        rel="noreferrer"
+                                                                                        style={{
+                                                                                            flex: 1,
+                                                                                            padding: '6px 10px',
+                                                                                            borderRadius: '6px',
+                                                                                            backgroundColor: '#2563eb',
+                                                                                            color: 'white',
+                                                                                            textAlign: 'center',
+                                                                                            textDecoration: 'none',
+                                                                                            fontSize: '0.7rem',
+                                                                                            fontWeight: 700,
+                                                                                            display: 'flex',
+                                                                                            alignItems: 'center',
+                                                                                            justifyContent: 'center',
+                                                                                            gap: '6px'
+                                                                                        }}
+                                                                                    >
+                                                                                        🛠️ Buka Vision Builder Pipeline
+                                                                                    </a>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     )}

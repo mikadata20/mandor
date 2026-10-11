@@ -534,9 +534,24 @@ export default function QuickBuildPipeline({ appVariables = [], cameraConfigs = 
             defaultValue: workspace.name,
             onConfirm: (name) => {
                 if (!name?.trim()) return;
+                const updatedWs = { ...workspace, name: name.trim(), updatedAt: new Date().toISOString() };
                 setWorkspace(prev => ({ ...prev, name: name.trim(), updatedAt: new Date().toISOString() }));
-                localStorage.setItem('mandor_quickbuild_workspace', JSON.stringify({ ...workspace, name: name.trim() }));
-                toast.success(`Workspace "${name.trim()}" saved!`);
+                localStorage.setItem('mandor_quickbuild_workspace', JSON.stringify(updatedWs));
+                
+                // Sync jobs to mandor_quickbuild_pipelines for App Builder integration
+                try {
+                    const pipelines = updatedWs.jobs.map(j => ({
+                        name: j.name,
+                        nodes: j.nodes,
+                        links: j.links,
+                        roiRegions: j.roiRegions || []
+                    }));
+                    localStorage.setItem('mandor_quickbuild_pipelines', JSON.stringify(pipelines));
+                } catch (e) {
+                    console.error('Failed to sync pipelines to App Builder:', e);
+                }
+
+                toast.success(`Workspace "${name.trim()}" saved & synced to App Builder!`);
             },
         });
     };
@@ -628,6 +643,18 @@ export default function QuickBuildPipeline({ appVariables = [], cameraConfigs = 
                     >
                         <Play size={12} fill="white" /> Dev Play
                     </button>
+
+                    <div style={{ width: '1px', height: '16px', backgroundColor: 'rgba(255,255,255,0.15)', margin: '0 4px' }} />
+
+                    {/* App Builder link */}
+                    <a
+                        href="#/builder"
+                        className="qb-btn-action"
+                        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: 'rgba(59, 130, 246, 0.25)', border: '1px solid rgba(59, 130, 246, 0.5)' }}
+                        title="Open in MES App Builder"
+                    >
+                        <span>📱 App Builder</span>
+                    </a>
                 </div>
 
                 {/* Right side: Template Loader */}

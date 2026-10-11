@@ -9,7 +9,7 @@ import {
   Workflow, ActivitySquare, Key, LayoutTemplate, GitBranch, Settings2,
   ChevronDown, ChevronRight, Ruler, Scale, Gauge, Shield,
   AlertTriangle, Smartphone, Sparkles, Code, Download, Package,
-  HelpCircle, Info, BookOpen, X
+  HelpCircle, Info, BookOpen, X, QrCode, Upload, ShieldCheck, CheckCircle2
 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { useGlobalStore } from '../../store/useGlobalStore.js';
@@ -41,7 +41,7 @@ export default function TopNavbar() {
     location.pathname.startsWith('/app-player') ||
     window.location.hash.includes('app-player');
 
-  const isOperatorRoute = location.pathname.startsWith('/player') || location.pathname.startsWith('/app-player') || location.pathname.startsWith('/terminal');
+  const isOperatorRoute = location.pathname.startsWith('/player') || location.pathname.startsWith('/app-player') || location.pathname.startsWith('/terminal') || location.pathname.startsWith('/digital-wi/operator');
   const hasAccess = (path) => checkRoleAccess(user, path);
 
   // Logic dropdown state
@@ -138,6 +138,7 @@ export default function TopNavbar() {
     { path: '/measuring-tools', icon: <Ruler size={16} />, label: 'Master Alat Ukur & Kalibrasi (ISO 17025)' },
     { path: '/defects', icon: <AlertTriangle size={16} />, label: 'Master Defect Library' }
   ].filter(Boolean);
+
 
   const shopFloorItems = [
     hasAccess('/stations') && { path: '/stations', icon: <MapPin size={16} />, label: 'Stations' },

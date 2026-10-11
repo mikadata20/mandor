@@ -4,7 +4,9 @@ export const hasAccess = (user, path) => {
     path === '/player' || path.startsWith('/player') ||
     path === '/app-player' || path.startsWith('/app-player') ||
     path === '/terminal' || path.startsWith('/terminal') ||
-    path === '/automations' || path.startsWith('/automations')
+    path === '/automations' || path.startsWith('/automations') ||
+    path.startsWith('/digital-wi/operator') ||
+    path === '/digital-wi' || path.startsWith('/digital-wi')
   ) {
     return true;
   }
