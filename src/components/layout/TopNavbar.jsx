@@ -93,6 +93,7 @@ export default function TopNavbar() {
       matchPaths: ['/builder', '/ui-engine', '/gluestack']
     },
     { type: 'divider' },
+    { path: '/ai-agents', icon: <Bot size={16} className="text-purple-600" />, label: 'AI Agent Manager', description: 'Buat & kelola otonom AI agents, tools & skills' },
     hasAccess('/file-explorer') && { path: '/file-explorer', icon: <Folder size={16} />, label: 'File Explorer' },
     hasAccess('/app-management') && { path: '/app-management', icon: <AppWindow size={16} />, label: 'App Management' },
     hasAccess('/mcp-server') && { path: '/mcp-server', icon: <BrainCircuit size={16} />, label: 'Mandor MCP Server' }
@@ -355,6 +356,18 @@ export default function TopNavbar() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/ai-agents"
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+              location.pathname === '/ai-agents' || location.pathname === '/agents'
+                ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 hover:border-purple-300'
+            }`}
+            title="Kelola AI Agents, Skills & Tools"
+          >
+            <Bot size={15} />
+            <span>AI Agents</span>
+          </Link>
           {consoleItems.length > 0 && <NavDropdown title="Console" items={consoleItems} />}
           {systemItems.length > 0 && <NavDropdown title="System" items={systemItems} />}
           <NavDropdown 

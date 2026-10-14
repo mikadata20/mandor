@@ -6,7 +6,9 @@ export const hasAccess = (user, path) => {
     path === '/terminal' || path.startsWith('/terminal') ||
     path === '/automations' || path.startsWith('/automations') ||
     path.startsWith('/digital-wi/operator') ||
-    path === '/digital-wi' || path.startsWith('/digital-wi')
+    path === '/digital-wi' || path.startsWith('/digital-wi') ||
+    path === '/ai-agents' || path.startsWith('/ai-agents') ||
+    path === '/agents' || path.startsWith('/agents')
   ) {
     return true;
   }

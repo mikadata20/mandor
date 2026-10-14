@@ -6,12 +6,22 @@ WORKDIR /app
 # Allocate 4GB memory for Vite bundler
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
+# Build arguments for frontend environment variables
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_APP_ENV=production
+
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_APP_ENV=$VITE_APP_ENV
+
 # Install build dependencies
 COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps
 
-# Copy source code and build
+# Copy source code and ensure env exists for build
 COPY . .
+RUN if [ ! -f .env ] && [ -f .env.example ]; then cp .env.example .env; fi
 RUN npm run build
 
 # Stage 2: Serve with lightweight Nginx
@@ -23,6 +33,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+# Cloud Run injects the PORT environment variable (default 8080)
+ENV PORT=8080
+EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+# Dynamically substitute PORT if Cloud Run specifies a custom port
+CMD sh -c "sed -i 's/listen 8080;/listen '${PORT:-8080}';/g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"

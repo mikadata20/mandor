@@ -11,3 +11,13 @@ build
 .claude
 *.pptx
 scratch
+scratchpad
+*.exe
+models
+datasets
+test-results
+playwright-report
+*.pt
+*.onnx
+diff.txt
+

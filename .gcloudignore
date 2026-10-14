@@ -1,0 +1,25 @@
+# Files ignored by gcloud CLI (Cloud Build and Cloud Run source deploy)
+.gcloudignore
+.git
+.gitignore
+.github
+node_modules/
+.venv/
+__pycache__/
+dist/
+build/
+*.log
+.env.local
+.antigravitycli/
+.claude/
+*.pptx
+scratch/
+scratchpad/
+*.exe
+models/
+datasets/
+test-results/
+playwright-report/
+*.pt
+*.onnx
+diff.txt

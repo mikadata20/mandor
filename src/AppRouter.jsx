@@ -42,6 +42,7 @@ const TableManager = lazy(() => import('./components/TableManager'));
 const ConnectorManager = lazy(() => import('./components/ConnectorManager'));
 const OdooStudio = lazy(() => import('./components/OdooStudio'));
 const UserManager = lazy(() => import('./components/UserManager'));
+const AgentManager = lazy(() => import('./components/AgentManager'));
 const AppBuilder = lazy(() => import('./components/AppBuilder'));
 const VibeSandpackViewer = lazy(() => import('./components/appbuilder/VibeSandpackViewer'));
 const SandboxDeviceRunner = lazy(() => import('./components/appbuilder/SandboxDeviceRunner'));
@@ -168,6 +169,8 @@ export default function AppRouter({ user, isOperator }) {
               <Route path="/google-cloud-ai" element={<GoogleCloudAiShowcase />} />
               <Route path="/ai-showcase" element={<GoogleCloudAiShowcase />} />
               <Route path="/vertex-ai" element={<GoogleCloudAiShowcase />} />
+              <Route path="/ai-agents" element={<AgentManager />} />
+              <Route path="/agents" element={<AgentManager />} />
               {/* Digital WI Operator & Management Routes */}
               <Route path="/digital-wi/operator/:id" element={<DigitalWiOperatorRuntime />} />
               <Route path="/digital-wi/operator" element={<DigitalWiOperatorRuntime />} />
@@ -274,6 +277,8 @@ export default function AppRouter({ user, isOperator }) {
               <Route path="/dozuki-player" element={<DozukiMobileCheckSheet />} />
               <Route path="/dozuki-mobile" element={<DozukiMobileCheckSheet />} />
               <Route path="/ai-settings" element={hasAccess('/ai-settings') ? <AiSettings /> : <Navigate to="/" replace />} />
+              <Route path="/ai-agents" element={<AgentManager />} />
+              <Route path="/agents" element={<AgentManager />} />
               <Route path="/supabase-settings" element={hasAccess('/supabase-settings') ? <SupabaseSettings /> : <Navigate to="/" replace />} />
               <Route path="/n8n-settings" element={hasAccess('/n8n-settings') ? <N8nWebhookSettings /> : <Navigate to="/" replace />} />
               <Route path="/admin-settings" element={hasAccess('/admin-settings') ? <AdminSettings /> : <Navigate to="/" replace />} />
