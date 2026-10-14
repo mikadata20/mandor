@@ -7,7 +7,8 @@ export default function NavDropdown({
   items, 
   children, 
   icon, 
-  alwaysShowTitle = false, 
+  alwaysShowTitle = true, 
+  showActiveBadge = false,
   menuWidth = 'min-w-56' 
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -66,9 +67,9 @@ export default function NavDropdown({
           <>
             {icon || activeItem?.icon}
             <span>{title}</span>
-            {activeItem && (
+            {showActiveBadge && activeItem?.badge && (
               <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                {activeItem.shortLabel || activeItem.badge || activeItem.label}
+                {activeItem.badge}
               </span>
             )}
           </>
