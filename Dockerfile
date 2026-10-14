@@ -1,10 +1,10 @@
-# Stage 1: Build Frontend
-FROM node:20-alpine AS builder
+# Stage 1: Build Frontend with Node 22 (required by pdfjs-dist & camera-controls, with Debian glibc for native binaries)
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Allocate 4GB memory for Vite bundler
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Allocate 3.5GB memory for Vite bundler (safe for Cloud Build standard VM)
+ENV NODE_OPTIONS="--max-old-space-size=3584"
 
 # Build arguments for frontend environment variables
 ARG VITE_SUPABASE_URL
@@ -17,7 +17,7 @@ ENV VITE_APP_ENV=$VITE_APP_ENV
 
 # Install build dependencies
 COPY package.json package-lock.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps --no-audit
 
 # Copy source code and ensure env exists for build
 COPY . .
